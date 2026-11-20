@@ -1,12 +1,13 @@
 # Clothing Store Inventory
 
-An inventory system for a clothing store: a MySQL database, a label generator that
-prints Code 128 barcodes, a small API server, and an iPhone/Android scanning app.
+An inventory system for a clothing store: a MySQL database, a desktop app for managing
+products and stock and printing Code 128 barcode labels, a small API server, and an
+iPhone/Android scanning app.
 
 ```
 Phone app (Expo)  ──Wi-Fi──►  API server (FastAPI)  ──►  MySQL
                                                            ▲
-Label generator (Python)  ─────────────────────────────────┘
+Desktop app (PySide6) + label generator  ──────────────────┘
 ```
 
 ## Repository layout
@@ -14,7 +15,8 @@ Label generator (Python)  ──────────────────
 | Folder | What it is |
 |---|---|
 | `database/schema.sql` | MySQL 8 schema, views, stored procedures and sample data |
-| `labels/make_labels.py` | Generates printable barcode labels as a PDF |
+| `desktop/` | Desktop app (PySide6): inventory, products, receiving, history, label printing |
+| `labels/make_labels.py` | Label PDF generator (command line, and used by the desktop app) |
 | `api/api.py` | FastAPI server the phone app talks to |
 | `mobile/` | Expo (React Native) scanning app |
 
@@ -49,7 +51,28 @@ If PowerShell blocks the activate script, run once:
 > Keep the project outside OneDrive. Synced folders cause errors when creating
 > virtual environments.
 
-## 3. Label generator
+## 3. Desktop app
+
+```
+$env:MYSQL_PASSWORD = 'your_mysql_password'     # optional: pre-fills the password box
+python desktop/app.py
+```
+
+Connect with your MySQL user and password. The app has two tabs:
+
+- **Inventory**: search, sort, and filter (low stock, inactive). Low items show orange, out of
+  stock shows red. Buttons: **New product** (tick colors and sizes and it creates every
+  SKU/barcode; re-using a style code adds only the missing ones), **Receive delivery** (enter
+  quantities for every size/color of a style at once, then print labels for exactly what
+  arrived), **Adjust stock** (receive, return, sale, damaged, lost, or an exact stocktake
+  count; also on double-click), **Edit product** (name, cost, price, active), and
+  **Print labels** (select rows, choose copies and layout, and a PDF opens for printing).
+- **Movement history**: the audit log of every change, from the desktop and the phone.
+
+All stock changes use the stored procedures, so the balance and history always agree.
+Prices use Colombian formatting (`$59.900`).
+
+## 4. Label generator (command line)
 
 ```
 $env:MYSQL_PASSWORD = 'your_mysql_password'
@@ -64,7 +87,7 @@ python labels/make_labels.py --style CT-001 --mode roll   # one label per page (
 - Prices print in Colombian format (`$59.900`). Labels show size, not color.
 - The barcode value is the SKU (`STYLE-COLOR-SIZE`).
 
-## 4. API server
+## 5. API server
 
 ```
 $env:MYSQL_PASSWORD = 'your_mysql_password'
@@ -85,7 +108,7 @@ Wi-Fi; allow port 8000 on your private network in Windows Firewall.
 
 Every request except `/health` needs the `X-API-Key` header.
 
-## 5. Mobile app
+## 6. Mobile app
 
 The app is a single file, `mobile/App.js`. To run it:
 
@@ -121,7 +144,8 @@ Modes: **Look up**, **Receive**, **Sell**, **Return**, **Count**.
 ## Roadmap
 
 - Android build of the scanner app
-- Desktop app for products, stock and reports
+- Desktop reports (sales, stock value, reorder suggestions) and purchase orders
+- Package the desktop app as a single `.exe` with PyInstaller
 - Per-user logins instead of the shared key
 - Point-of-sale integration so sales reduce stock automatically
 - Production app builds (no Expo Go) and HTTPS
