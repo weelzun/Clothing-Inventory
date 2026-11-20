@@ -1,0 +1,5 @@
+# Python dependencies for the API server and the label generator
+fastapi
+uvicorn[standard]
+mysql-connector-python
+reportlab
